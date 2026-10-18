@@ -1,0 +1,27 @@
+[package]
+name = "jjigae"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+wgpu = { version = "30.0.0", features = ["spirv", "vulkan-portability"] }
+winit = { version = "0.30.0", features = ["android-native-activity", "rwh_05"] }
+anyhow = "1.0"
+pollster = "0.3"
+env_logger = "0.11.11"
+scrollrs = { git = "https://github.com/ityeri/scrollrs" }
+shared = { path = "./shared/" }
+plock = { git = "https://github.com/ityeri/plock", branch = "develop" }
+glam = "0.30.7"
+
+[build-dependencies]
+spirv-builder = "0.10.0"
+
+[profile.release.build-override]
+opt-level = 3
+codegen-units = 16
+[profile.dev.build-override]
+opt-level = 3
+
+[workspace]
+members = ["./shader/", "./shared/"]

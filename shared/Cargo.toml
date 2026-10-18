@@ -1,0 +1,10 @@
+[package]
+name = "shared"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+crevice = { rev = "9a7a2f1", git = "https://github.com/ityeri/crevice", default-features = false, features = [
+  "glam",
+] }
+glam = { version = "0.33", default-features = false, features = ["libm"] }

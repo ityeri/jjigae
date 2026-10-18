@@ -1,0 +1,9 @@
+[package]
+name = "shader"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+spirv-std = { version = "0.10.0" }
+shared = { path = "../shared" }
+num-complex = { version = "0.4", default-features = false, features = ["libm"] }

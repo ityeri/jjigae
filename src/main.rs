@@ -1,19 +1,41 @@
-use glam::{UVec2, uvec2};
+use glam::{Vec2, vec2};
 use jjigae::{
     application_handler::JjigaeApplicationHandler,
     application_runner::{JjigaeApplicationRunner, RenderContext},
 };
+use plock::PlockClock;
+use scrollrs::{Projector, ScrollAdapter};
 use shared::{GpuCamera, Parameter, shared_glam};
 use wgpu::{
     CommandEncoder, RenderPass, RenderPassDescriptor, RenderPipelineDescriptor, ShaderModule,
     SurfaceConfiguration, TextureView,
 };
-use winit::{dpi::PhysicalSize, event_loop::EventLoop};
+use winit::{
+    dpi::PhysicalSize,
+    event::{ElementState, MouseButton, MouseScrollDelta, TouchPhase, WindowEvent},
+};
 
 const SHADER: &[u8] = include_bytes!(env!("shader.spv"));
 
 struct App {
     screen_size: PhysicalSize<u32>,
+    clock: PlockClock,
+    scroll_adapter: ScrollAdapter,
+    current_mouse_pos: Vec2,
+    last_mouse_pos: Vec2,
+    current_mouse_pressed: bool,
+}
+impl App {
+    pub fn default() -> Self {
+        App {
+            screen_size: PhysicalSize::new(0, 0),
+            clock: PlockClock::new(1.0 / 60.0),
+            scroll_adapter: ScrollAdapter::new(500.0, 500.0, None, None, None),
+            current_mouse_pos: Vec2::new(250.0, 250.0),
+            last_mouse_pos: Vec2::new(250.0, 250.0),
+            current_mouse_pressed: false,
+        }
+    }
 }
 
 impl JjigaeApplicationHandler for App {
@@ -58,20 +80,80 @@ impl JjigaeApplicationHandler for App {
     }
 
     fn on_resumed(&mut self, render_context: &RenderContext) {
-        self.screen_size = render_context.window.inner_size()
+        self.screen_size = render_context.window.inner_size();
+        self.scroll_adapter = self.scroll_adapter.resized(
+            self.screen_size.width as f64,
+            self.screen_size.height as f64,
+            None,
+            None,
+        );
     }
 
     fn on_window_event(
         &mut self,
-        event: winit::event::WindowEvent,
+        event: WindowEvent,
         event_loop: &winit::event_loop::ActiveEventLoop,
     ) {
+        match event {
+            WindowEvent::CloseRequested => {
+                event_loop.exit();
+            }
+            WindowEvent::MouseInput {
+                state: button_state,
+                button,
+                ..
+            } => match button {
+                MouseButton::Left => match button_state {
+                    ElementState::Pressed => {
+                        self.current_mouse_pressed = true;
+                    }
+                    ElementState::Released => {
+                        self.current_mouse_pressed = false;
+                    }
+                },
+                _ => {}
+            },
+            WindowEvent::CursorMoved { position, .. } => {
+                self.current_mouse_pos = vec2(position.x as f32, position.y as f32);
+            }
+            WindowEvent::MouseWheel { delta, phase, .. } => match phase {
+                TouchPhase::Moved => match delta {
+                    MouseScrollDelta::PixelDelta { 0: delta } => {
+                        let zoom_amount = delta.y as f64 * 0.01;
+                        self.scroll_adapter = self.scroll_adapter.zoom(zoom_amount);
+                    }
+                    MouseScrollDelta::LineDelta { 0: _h, 1: v } => {
+                        let zoom_amount = v as f64 * 0.1;
+                        self.scroll_adapter = self.scroll_adapter.zoom(zoom_amount);
+                    }
+                },
+                _ => {}
+            },
+            _ => {}
+        }
     }
 
-    fn on_tick(&mut self) {}
+    fn on_tick(&mut self) {
+        self.scroll_adapter = self.scroll_adapter.updated(self.clock.last_dt);
+
+        if self.current_mouse_pressed {
+            let mouse_delta = -(self.current_mouse_pos - self.last_mouse_pos).as_dvec2();
+            self.scroll_adapter
+                .moved(self.scroll_adapter.unproject_scalev(mouse_delta));
+        }
+
+        self.clock = self.clock.tick(-1.0);
+        self.last_mouse_pos = self.current_mouse_pos;
+    }
 
     fn on_resize(&mut self, width: u32, height: u32) {
         self.screen_size = PhysicalSize::new(width, height);
+        self.scroll_adapter = self.scroll_adapter.resized(
+            self.screen_size.width as f64,
+            self.screen_size.height as f64,
+            None,
+            None,
+        );
     }
 
     fn get_uniform_buffer_value(&self) -> Self::BufferBodyType {
@@ -81,8 +163,11 @@ impl JjigaeApplicationHandler for App {
                 self.screen_size.height as f32,
             ),
             camera: GpuCamera {
-                position: shared_glam::vec2(0.0, 0.0),
-                zoom: 0.1,
+                position: shared_glam::vec2(
+                    self.scroll_adapter.camera.position.x as f32,
+                    self.scroll_adapter.camera.position.y as f32,
+                ),
+                zoom: self.scroll_adapter.camera.zoom as f32,
             },
         }
     }
@@ -117,8 +202,5 @@ impl JjigaeApplicationHandler for App {
 }
 
 fn main() {
-    JjigaeApplicationRunner::new(App {
-        screen_size: PhysicalSize::new(0, 0),
-    })
-    .run();
+    JjigaeApplicationRunner::new(App::default()).run();
 }

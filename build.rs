@@ -10,9 +10,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("cargo:rerun-if-changed=./shared/src");
     println!("cargo:rerun-if-changed=./shared/Cargo.toml");
 
-    let mut builder = SpirvBuilder::new("./shader", "spirv-unknown-vulkan1.1")
-        .capability(Capability::Int8)
-        .uniform_buffer_standard_layout(true);
+    let mut builder =
+        SpirvBuilder::new("./shader", "spirv-unknown-vulkan1.1").capability(Capability::Int16);
     builder.build_script.env_shader_spv_path = Some(true);
     builder.build()?;
     Ok(())

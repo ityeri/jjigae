@@ -24,7 +24,9 @@ pub fn main_fs(
     #[spirv(uniform, descriptor_set = 0, binding = 0)] param: &StdParameter,
     output: &mut Vec4,
 ) {
-    let subpixels = 6;
+    let param = Parameter::from_std140(param.clone());
+
+    let subpixels = 2;
     let frag_coord = vec2(frag_coord.x, frag_coord.y);
 
     let mut final_color = Vec4::ZERO;
@@ -35,7 +37,7 @@ pub fn main_fs(
                 frag_coord.x + 1.0 / subpixels as f32 * sub_x as f32,
                 frag_coord.y + 1.0 / subpixels as f32 * sub_y as f32,
             );
-            final_color += calculate_color(to_world_coord(screen_coord, param))
+            final_color += calculate_color(to_world_coord(screen_coord, &param))
                 / (subpixels * subpixels) as f32;
         }
     }
@@ -61,7 +63,7 @@ pub fn main_fs(
     // *output = calculate_color(world_coord);
 }
 
-fn to_world_coord(pos: Vec2, param: &StdParameter) -> Vec2 {
+fn to_world_coord(pos: Vec2, param: &Parameter) -> Vec2 {
     let camera_coord = {
         let screen_radius = if param.resolution.x > param.resolution.y {
             param.resolution.x / 2.0
@@ -72,11 +74,7 @@ fn to_world_coord(pos: Vec2, param: &StdParameter) -> Vec2 {
             * vec2(1.0, -1.0)
     };
 
-    let resized_pos = camera_coord / param.camera.zoom;
-    vec2(
-        resized_pos.x + param.camera.position.x,
-        resized_pos.y + param.camera.position.y,
-    )
+    param.camera.unproject(camera_coord)
 }
 
 fn calculate_color(pos: Vec2) -> Vec4 {
@@ -89,7 +87,7 @@ fn calculate_color(pos: Vec2) -> Vec4 {
         z = (z * z * z) / (1.0 + Complex32::new(z.re.powi(2), -z.im.powi(2))) + c;
         iterations += 1;
 
-        if 500 <= iterations {
+        if 50 <= iterations {
             break;
         }
         if 20.0 < (z.re.powi(2) + z.im.powi(2)).sqrt() {

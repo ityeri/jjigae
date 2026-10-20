@@ -1,7 +1,7 @@
 use shared::crevice::std140::{AsStd140, Std140};
 use std::sync::Arc;
 use std::time::Instant;
-use wgpu::BufferDescriptor;
+use wgpu::{BufferDescriptor, Features};
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
 use winit::event_loop::EventLoop;
@@ -64,6 +64,7 @@ where
         let (device, queue) = adapter
             .request_device(&wgpu::DeviceDescriptor {
                 label: Some("device"),
+                required_features: Features::SHADER_I16,
                 ..Default::default()
             })
             .await?;

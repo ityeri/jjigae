@@ -201,7 +201,6 @@ where
                 });
 
         {
-            // let mut render_pass = encoder.begin_render_pass(&self.handler.gen_render_pass(&view));
             let mut render_pass = self.handler.begin_render_pass(&mut encoder, &view);
             render_pass.set_pipeline(&render_context.pipeline);
             render_pass.set_bind_group(0, &render_context.bind_group, &[]);
@@ -251,6 +250,9 @@ where
                     }
                     None => return,
                 };
+            }
+            WindowEvent::Resized { 0: size } => {
+                self.resize(size.width, size.height);
             }
             _ => {}
         }

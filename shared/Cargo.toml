@@ -8,3 +8,4 @@ crevice = { git = "https://github.com/ityeri/crevice", rev = "621e07b", default-
   "glam",
 ] }
 glam = { version = "0.33", default-features = false, features = ["libm"] }
+spirv-std = { version = "0.10.0" }
